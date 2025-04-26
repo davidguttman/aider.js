@@ -5,8 +5,8 @@
   "main": "src/aider.js",
   "scripts": {
     "postinstall": "node scripts/postinstall.js",
-    "test": "cross-env NODE_ENV=test ava test/**/*.test.js",
-    "test:record": "cross-env RECORD_MODE=true NODE_ENV=test ava test/**/*.test.js",
+    "test": "cross-env DEBUG=aider-js:* NODE_ENV=test ava test/**/*.test.js",
+    "test:record": "cross-env DEBUG=aider-js:* RECORD_MODE=true NODE_ENV=test ava test/**/*.test.js",
     "cleanup": "node scripts/cleanup.js"
   },
   "files": [
@@ -28,6 +28,9 @@
   ],
   "author": "David Guttman <david@davidguttman.com> (http://davidguttman.com/)",
   "license": "MIT",
+  "dependencies": {
+    "debug": "^4.4.0"
+  },
   "devDependencies": {
     "ava": "^6.2.0",
     "cross-env": "^7.0.3",

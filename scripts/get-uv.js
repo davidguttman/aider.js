@@ -6,6 +6,8 @@ const os = require('os');
 const { pipeline } = require('stream/promises');
 const tar = require('tar');          // For .tar.gz extraction
 const unzipper = require('unzipper'); // For .zip extraction
+const debugLog = require('debug')('aider-js:scripts:get-uv:log');
+const debugError = require('debug')('aider-js:scripts:get-uv:error');
 
 // Function to determine the correct uv target suffix based on platform and arch
 function getUvTargetSuffixAndExt() {
@@ -28,9 +30,9 @@ function getUvTargetSuffixAndExt() {
   } else {
     throw new Error(`Unsupported platform: ${platform}`);
   }
+  debugLog(`Determined uv target suffix: ${suffix}, extension: ${ext}`);
   return { suffix, ext };
 }
-
 
 async function downloadUv() {
   const releaseUrl = 'https://github.com/astral-sh/uv/releases/latest/download';
@@ -44,11 +46,11 @@ async function downloadUv() {
   const tempArchivePath = path.join(binDir, archiveFilename); // Store archive temporarily
 
   if (fs.existsSync(uvPath)) {
-    console.log(`uv binary already exists at ${uvPath}. Skipping download and extraction.`);
+    debugLog(`uv binary already exists at ${uvPath}. Skipping download and extraction.`);
     return uvPath;
   }
 
-  console.log(`Downloading uv archive from ${downloadUrl} to ${tempArchivePath}...`);
+  debugLog(`Downloading uv archive from ${downloadUrl} to ${tempArchivePath}...`);
   fs.mkdirSync(binDir, { recursive: true });
 
   let downloadedSuccessfully = false;
@@ -61,9 +63,9 @@ async function downloadUv() {
     const fileStream = fs.createWriteStream(tempArchivePath);
     await pipeline(response.body, fileStream);
     downloadedSuccessfully = true;
-    console.log('uv archive downloaded successfully.');
+    debugLog('uv archive downloaded successfully.');
 
-    console.log(`Extracting ${uvExecutableName} from ${tempArchivePath} to ${binDir}...`);
+    debugLog(`Extracting ${uvExecutableName} from ${tempArchivePath} to ${binDir}...`);
 
     if (archiveExt === '.tar.gz') {
       await tar.x({
@@ -81,7 +83,7 @@ async function downloadUv() {
             // Inside zip, the path might be like 'uv-x86_64-pc-windows-msvc/uv.exe'
             // Or just 'uv.exe'
             if (entry.path.endsWith(uvExecutableName)) {
-              console.log(`Found ${entry.path}, extracting to ${uvPath}`);
+              debugLog(`Found ${entry.path}, extracting to ${uvPath}`);
               const writeStream = fs.createWriteStream(uvPath);
               entry.pipe(writeStream)
                  .on('finish', resolve)
@@ -100,20 +102,20 @@ async function downloadUv() {
       });
     }
 
-    console.log(`${uvExecutableName} extracted successfully to ${uvPath}.`);
+    debugLog(`${uvExecutableName} extracted successfully to ${uvPath}.`);
 
     // Make executable on non-Windows platforms
     if (process.platform !== 'win32') {
       fs.chmodSync(uvPath, 0o755);
-      console.log(`${uvPath} made executable.`);
+      debugLog(`${uvPath} made executable.`);
     }
     return uvPath;
 
   } catch (error) {
-    console.error(`Error during uv download/extraction: ${error.message}`);
+    debugError(`Error during uv download/extraction: ${error.message}`);
     // Attempt cleanup
     if (fs.existsSync(uvPath)) {
-      try { fs.unlinkSync(uvPath); } catch (e) { console.error(`Cleanup error (uv): ${e.message}`); }
+      try { fs.unlinkSync(uvPath); } catch (e) { debugError(`Cleanup error (uv): ${e.message}`); }
     }
     throw error; // Re-throw the error
   } finally {
@@ -121,9 +123,9 @@ async function downloadUv() {
     if (downloadedSuccessfully && fs.existsSync(tempArchivePath)) {
       try {
         fs.unlinkSync(tempArchivePath);
-        console.log(`Cleaned up temporary archive ${tempArchivePath}.`);
+        debugLog(`Cleaned up temporary archive ${tempArchivePath}.`);
       } catch (cleanupError) {
-        console.error(`Error cleaning up archive file: ${cleanupError.message}`);
+        debugError(`Error cleaning up archive file: ${cleanupError.message}`);
       }
     }
   }

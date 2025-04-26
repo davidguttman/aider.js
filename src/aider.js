@@ -1,6 +1,8 @@
 const { spawn } = require('child_process')
 const path = require('path')
 const fs = require('fs')
+const debugLog = require('debug')('aider-js:src:log')
+const debugError = require('debug')('aider-js:src:error')
 
 const PYTHON_SCRIPT_PATH = path.join(__dirname, '..', 'python', 'aider_entrypoint.py')
 const venvBinDir = path.join(__dirname, '..', '.venv', process.platform === 'win32' ? 'Scripts' : 'bin')
@@ -39,18 +41,21 @@ async function runAider (options) {
 
     // Check if Python executable exists before spawning
     if (!fs.existsSync(PYTHON_EXECUTABLE)) {
-        return reject(new Error(`Python executable not found at ${PYTHON_EXECUTABLE}. The postinstall script might have failed or the .venv directory was not included.`));
+      const errorMsg = `Python executable not found at ${PYTHON_EXECUTABLE}. The postinstall script might have failed or the .venv directory was not included.`
+      debugError(errorMsg) // Log error using debug
+      return reject(new Error(errorMsg))
     }
 
-    console.log(`Executing: ${PYTHON_EXECUTABLE} ${PYTHON_SCRIPT_PATH} with options:`, JSON.stringify(pythonOptions, null, 2))
+    debugLog(`Executing: ${PYTHON_EXECUTABLE} ${PYTHON_SCRIPT_PATH} with options: %O`, pythonOptions)
 
     // Prepare environment for the Python script
     const pythonEnv = { ...process.env }
     if (apiBase && apiKey) {
       pythonEnv.OPENAI_API_KEY = apiKey
-      console.log('Using provided apiKey option as OPENAI_API_KEY for the Python process because apiBase was also provided.')
+      debugLog('Using provided apiKey option as OPENAI_API_KEY for the Python process because apiBase was also provided.')
     } else if (apiBase) {
-      console.log('Using process.env.OPENAI_API_KEY for the Python process because apiBase was provided.')
+      // Note: OPENAI_API_KEY should be present in process.env due to validation above
+      debugLog('Using process.env.OPENAI_API_KEY for the Python process because apiBase was provided.')
     }
 
     const pythonProcess = spawn(
@@ -66,29 +71,37 @@ async function runAider (options) {
     let stderrData = ''
 
     pythonProcess.stdout.on('data', (data) => {
-      stdoutData += data.toString()
-      console.log(`aider_entrypoint.py stdout: ${data}`)
+      const stdoutChunk = data.toString()
+      stdoutData += stdoutChunk
+      // Log each chunk as it arrives
+      debugLog(`aider_entrypoint.py stdout: ${stdoutChunk.trim()}`)
     })
 
     pythonProcess.stderr.on('data', (data) => {
-      stderrData += data.toString()
-      console.error(`aider_entrypoint.py stderr: ${data}`)
+      const stderrChunk = data.toString()
+      stderrData += stderrChunk
+      // Log each chunk as it arrives
+      debugError(`aider_entrypoint.py stderr: ${stderrChunk.trim()}`)
     })
 
     pythonProcess.on('close', (code) => {
-      console.log(`aider_entrypoint.py process exited with code ${code}`)
+      debugLog(`aider_entrypoint.py process exited with code ${code}`)
       if (code === 0) {
         resolve({ stdout: stdoutData, stderr: stderrData })
       } else {
         const error = new Error(`Python script exited with code ${code}`)
         error.stderr = stderrData
         error.stdout = stdoutData
+        // Log the combined stderr before rejecting
+        if (stderrData.trim()) {
+          debugError(`Combined aider_entrypoint.py stderr on exit(${code}):\n${stderrData.trim()}`)
+        }
         reject(error)
       }
     })
 
     pythonProcess.on('error', (err) => {
-      console.error('Failed to start subprocess.', err)
+      debugError('Failed to start subprocess.', err)
       reject(err)
     })
   })
