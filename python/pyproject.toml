@@ -1,0 +1,8 @@
+[project]
+name = "aider-js-python-deps"
+version = "0.1.0"
+description = "Python dependencies for aider-js"
+requires-python = ">=3.11"
+dependencies = [
+    "aider-chat==0.82.2" 
+]
