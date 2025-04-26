@@ -8,46 +8,59 @@ const PYTHON_EXECUTABLE = path.join(venvBinDir, 'python' + (process.platform ===
 
 async function runAider (options) {
   // --- Input Validation and Defaults ---
-  const { prompt, editableFiles, readOnlyFiles, modelName, apiKey, apiBase, verbose } = options
+  const { prompt, editableFiles, readOnlyFiles, modelName, apiBase, apiKey, verbose } = options
 
   if (!prompt) {
     return Promise.reject(new Error("'prompt' is a required option"))
   }
-  if (!apiKey) {
-    return Promise.reject(new Error("'apiKey' is a required option (for OpenRouter)"))
-  }
-  if (!apiBase) {
-    return Promise.reject(new Error("'apiBase' is a required option (for OpenRouter or proxy)"))
-  }
   if (!modelName) {
     return Promise.reject(new Error("'modelName' is a required option"))
   }
+  if (apiBase && !apiKey && !process.env.OPENAI_API_KEY) {
+    return Promise.reject(new Error(
+      "When 'apiBase' is provided, you must also provide either the 'apiKey' option or set the 'OPENAI_API_KEY' environment variable."
+    ))
+  }
 
   // --- Prepare Python Options ---
-  // IMPORTANT: Prepend 'openai/' to the model name for aider-chat
-  // This tells aider-chat to use the apiBase, even for non-openai models via OpenRouter.
-  const aiderModelName = `openai/${modelName}`
+  const aiderModelName = apiBase ? `openai/${modelName}` : modelName
 
   const pythonOptions = {
     prompt,
     editableFiles: editableFiles || [],
     readOnlyFiles: readOnlyFiles || [],
-    modelName: aiderModelName, // Pass the prefixed name to Python
-    apiKey,
-    apiBase,
+    modelName: aiderModelName,
+    ...(apiBase && { apiBase }),
     verbose: verbose || false
   }
 
   return new Promise((resolve, reject) => {
-    const optionsJson = JSON.stringify(pythonOptions) // Use prepared options
+    const optionsJson = JSON.stringify(pythonOptions)
 
     // Check if Python executable exists before spawning
     if (!fs.existsSync(PYTHON_EXECUTABLE)) {
         return reject(new Error(`Python executable not found at ${PYTHON_EXECUTABLE}. The postinstall script might have failed or the .venv directory was not included.`));
     }
 
-    console.log(`Executing: ${PYTHON_EXECUTABLE} ${PYTHON_SCRIPT_PATH} with options:`, JSON.stringify(pythonOptions, null, 2)) // Log options sent
-    const pythonProcess = spawn(PYTHON_EXECUTABLE, [PYTHON_SCRIPT_PATH, optionsJson], { stdio: 'pipe' })
+    console.log(`Executing: ${PYTHON_EXECUTABLE} ${PYTHON_SCRIPT_PATH} with options:`, JSON.stringify(pythonOptions, null, 2))
+
+    // Prepare environment for the Python script
+    const pythonEnv = { ...process.env }
+    if (apiBase && apiKey) {
+      pythonEnv.OPENAI_API_KEY = apiKey
+      console.log('Using provided apiKey option as OPENAI_API_KEY for the Python process because apiBase was also provided.')
+    } else if (apiBase) {
+      console.log('Using process.env.OPENAI_API_KEY for the Python process because apiBase was provided.')
+    }
+
+    const pythonProcess = spawn(
+      PYTHON_EXECUTABLE,
+      [PYTHON_SCRIPT_PATH, optionsJson],
+      {
+        stdio: 'pipe',
+        env: pythonEnv
+      }
+    )
 
     let stdoutData = ''
     let stderrData = ''

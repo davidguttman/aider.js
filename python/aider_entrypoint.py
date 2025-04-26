@@ -26,8 +26,6 @@ def main():
     editable_files = config.get('editableFiles', [])
     read_only_files = config.get('readOnlyFiles', [])
     model_name = config.get('modelName', 'gpt-4o-mini') # Default model
-    api_key = config.get('apiKey')
-    api_base = config.get('apiBase')
     verbose = config.get('verbose', False) # Control aider's verbosity
 
     if not prompt:
@@ -35,13 +33,8 @@ def main():
         sys.exit(1)
 
     # --- Environment Setup ---
-    # Set API key and base URL if provided
-    # Note: Aider might have its own ways of picking these up,
-    # but setting env vars is a common approach.
-    if api_key:
-        os.environ['OPENAI_API_KEY'] = api_key
-    if api_base:
-        os.environ['OPENAI_API_BASE'] = api_base
+    # Aider will now pick these up directly from the environment variables
+    # passed by the Node.js process.
 
     # Validate file paths
     for fpath in editable_files + read_only_files:

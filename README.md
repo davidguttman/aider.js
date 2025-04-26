@@ -25,29 +25,50 @@ The `postinstall` script will automatically download the necessary `uv` binary f
 
 ## Usage
 
+**API Keys:**
+
+*   **Default Behavior:** By default, `runAider` expects API keys (e.g., `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`) to be set as **environment variables** in the Node.js process. These are automatically passed down to the underlying Aider Python process.
+*   **Using `apiBase`:** If you provide the optional `apiBase` option (for proxies or custom endpoints like OpenRouter), you have two choices for the API key:
+    1.  **Set `OPENAI_API_KEY` Environment Variable:** If `apiBase` is provided and the `apiKey` option (see below) is *not* used, the `OPENAI_API_KEY` environment variable **must** be set. Aider uses this specific environment variable when `apiBase` is involved, even for non-OpenAI models.
+    2.  **Use `apiKey` Option:** Alternatively, if `apiBase` is provided, you can *also* provide the optional `apiKey` string directly in the `runAider` options. If you do this, the value of the `apiKey` option will be used as the `OPENAI_API_KEY` for the Python process *for that specific call*, overriding any `OPENAI_API_KEY` environment variable that might also be set.
+
+**In summary:** Use environment variables for keys by default. Only use the `apiKey` option *if* you are also using `apiBase` *and* you want to specify the key directly for that call instead of relying on the `OPENAI_API_KEY` environment variable.
+
+**Example Environment Setup:**
+```bash
+# Set API key(s) as environment variables
+export OPENAI_API_KEY=sk-...
+export OPENROUTER_API_KEY=sk-or-...
+
+# Run your Node.js script
+node your_script.js
+```
+
+**Example `runAider` Call:**
 ```javascript
 const { runAider } = require('aider-js');
 
 async function main() {
   try {
-    // Required options: prompt, apiKey, apiBase, modelName
-    // Optional: editableFiles (array), readOnlyFiles (array), verbose (boolean)
+    // Required: prompt, modelName
+    // Optional: editableFiles, readOnlyFiles, apiBase, apiKey, verbose
     const result = await runAider({
-      // Files that Aider can modify
-      editableFiles: ['src/app.js', 'src/utils.js'], 
-      // Files Aider can read but not modify
-      readOnlyFiles: ['docs/architecture.md'], 
-      // The instruction/prompt for Aider
       prompt: 'Refactor the main function in app.js based on the architecture doc.',
-      // The name of the model to use (e.g., 'gpt-4o', 'claude-3-opus-20240229')
-      // This will be automatically prefixed with 'openai/' internally 
-      // to ensure compatibility with aider-chat's handling of custom API bases.
-      modelName: 'gpt-4o-mini', 
-      // Your API key (e.g., OpenRouter key)
-      apiKey: process.env.OPENROUTER_API_KEY, 
-      // The API base URL (e.g., OpenRouter endpoint)
+      modelName: 'openai/gpt-4o-mini', // e.g., 'openai/gpt-4o', 'openai/gpt-4o-mini', 'anthropic/claude-3-opus-20240229'
+      
+      // --- Files ---
+      editableFiles: ['src/app.js', 'src/utils.js'], 
+      readOnlyFiles: ['docs/architecture.md'], 
+      
+      // --- Optional: Custom Endpoint --- 
+      // Use apiBase for proxies or specific endpoints (like OpenRouter)
+      // If used, modelName is prefixed with 'openai/' internally.
       apiBase: 'https://openrouter.ai/api/v1', 
-      // (Optional) Set to true for more verbose logging from the Python script
+      // Use apiKey HERE only if you provide apiBase AND want to override the 
+      // OPENAI_API_KEY environment variable for this specific call.
+      apiKey: 'sk-or-xxxxxx', // If omitted, OPENAI_API_KEY env var MUST be set when apiBase is used.
+      
+      // --- Optional: Verbosity ---
       verbose: false 
     });
     
@@ -69,26 +90,26 @@ async function main() {
 main();
 ```
 
-The `runAider` function accepts an options object. See the example above for required and optional parameters. It returns a Promise that resolves with an object containing `stdout` and `stderr` from the Aider process, or rejects with an error if the process fails.
+The `runAider` function accepts an options object. See the example and API Key explanation above for details. It returns a Promise that resolves with an object containing `stdout` and `stderr` from the Aider process, or rejects with an error if the process fails.
 
 ## How it Works
 
-1.  **Postinstall:** When you install `aider-js`, the `postinstall` script in `scripts/postinstall.js` runs.
-2.  **Download uv:** The script calls `scripts/get-uv.js` to download the appropriate `uv` binary for your operating system and architecture from the [uv releases](https://github.com/astral-sh/uv/releases) into the package's `bin/` directory.
-3.  **Create venv:** It uses the downloaded `uv` binary to create a Python virtual environment (venv) in the package's `.venv/` directory, specifying a compatible Python version (defined in `python/pyproject.toml`).
-4.  **Install Aider:** It uses `uv pip install` to install `aider-chat` (and its dependencies) into the created venv, based on the configuration in `python/pyproject.toml`.
-5.  **Execution (`runAider`):** 
-    *   The `runAider` function in `src/aider.js` gathers the provided options (`prompt`, `editableFiles`, `readOnlyFiles`, `modelName`, `apiKey`, `apiBase`, `verbose`).
-    *   It **prepends `openai/`** to the `modelName`. This is crucial for telling `aider-chat` to use the provided `apiBase` and `apiKey`, even for non-OpenAI models hosted elsewhere (like OpenRouter).
-    *   It bundles these options into a **JSON string**.
-    *   It locates the Python executable within the package's `.venv/` directory and the `aider_entrypoint.py` script in `python/`.
-    *   It spawns `aider_entrypoint.py` as a child process, passing the **JSON string as a single command-line argument**.
-6.  **Python Script (`aider_entrypoint.py`):**
-    *   The Python script parses the incoming JSON configuration.
-    *   It sets the `OPENAI_API_KEY` and `OPENAI_API_BASE` environment variables using the values from the JSON.
-    *   It initializes the Aider `Coder` with the specified model, files (`editableFiles`, `readOnlyFiles`), and other settings.
-    *   It calls `coder.run()` with the provided `prompt`.
-    *   Aider's output (diffs, chat) is captured from the process's stdout/stderr back in Node.js.
+1.  **Postinstall:** Installs `uv` and Python dependencies (`aider-chat`) into `.venv/`.
+2.  **Execution (`runAider`):**
+    *   Gathers options (`prompt`, `modelName`, `files`, `apiBase`, `apiKey`, `verbose`).
+    *   **Validation:** Checks if `apiBase` is provided, ensures either `apiKey` option or `OPENAI_API_KEY` env var is present.
+    *   **Model Prefixing:** Prepends `openai/` to `modelName` if `apiBase` is provided.
+    *   **Environment Setup:** Prepares environment variables for the child process:
+        *   Inherits all `process.env`.
+        *   If `apiBase` and `apiKey` are both provided, sets `OPENAI_API_KEY` in the child environment to the value of the `apiKey` option.
+    *   **JSON Payload:** Bundles options (excluding `apiKey` itself) into a JSON string.
+    *   **Spawn:** Executes `python/aider_entrypoint.py` using the Python in `.venv/`, passing the JSON payload as an argument and the prepared environment variables.
+3.  **Python Script (`aider_entrypoint.py`):**
+    *   Parses the JSON configuration.
+    *   Initializes Aider `Coder` with model, files etc.
+    *   Aider reads API keys from the environment variables provided by Node.js (using `OPENAI_API_KEY` if `apiBase` was involved).
+    *   Runs `coder.run(prompt)`.
+    *   Captures stdout/stderr back to Node.js.
 
 ## Development & Testing
 
