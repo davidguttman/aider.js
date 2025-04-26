@@ -1,6 +1,6 @@
-# aider-js
+# @dguttman/aider-js
 
-[![NPM version](https://img.shields.io/npm/v/aider-js.svg)](https://www.npmjs.com/package/aider-js) 
+[![NPM version](https://img.shields.io/npm/v/@dguttman/aider-js.svg)](https://www.npmjs.com/package/@dguttman/aider-js) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Node.js wrapper for the [Aider](https://github.com/Aider-AI/aider) tool using a self-contained Python environment via [uv](https://github.com/astral-sh/uv).
@@ -18,7 +18,7 @@ This package allows you to easily integrate Aider's AI coding capabilities into 
 ## Installation
 
 ```bash
-npm install aider-js
+npm install @dguttman/aider-js
 ```
 
 The `postinstall` script will automatically download the necessary `uv` binary for your platform and set up the Python environment with `aider-chat`.
@@ -46,7 +46,7 @@ node your_script.js
 
 **Example `runAider` Call:**
 ```javascript
-const { runAider } = require('aider-js');
+const { runAider } = require('@dguttman/aider-js');
 
 async function main() {
   try {

@@ -1,5 +1,5 @@
 {
-  "name": "aider-js",
+  "name": "@dguttman/aider-js",
   "version": "1.0.0",
   "description": "Node.js wrapper for the Aider tool using a self-contained Python environment via uv",
   "main": "src/aider.js",
