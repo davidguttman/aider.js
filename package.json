@@ -1,6 +1,6 @@
 {
   "name": "@dguttman/aider-js",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Node.js wrapper for the Aider tool using a self-contained Python environment via uv",
   "main": "src/aider.js",
   "scripts": {
