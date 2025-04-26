@@ -27,14 +27,19 @@ def main():
     read_only_files = config.get('readOnlyFiles', [])
     model_name = config.get('modelName', 'gpt-4o-mini') # Default model
     verbose = config.get('verbose', False) # Control aider's verbosity
+    api_base = config.get('apiBase') # Get apiBase from config
 
     if not prompt:
         print("Error: 'prompt' is required in the JSON input.", file=sys.stderr)
         sys.exit(1)
 
     # --- Environment Setup ---
-    # Aider will now pick these up directly from the environment variables
-    # passed by the Node.js process.
+    # Aider/LiteLLM primarily uses environment variables.
+    # Set OPENAI_API_BASE if apiBase was provided in the config.
+    # OPENAI_API_KEY is already set by the Node.js wrapper if needed.
+    if api_base:
+        os.environ['OPENAI_API_BASE'] = api_base
+        print(f"Setting OPENAI_API_BASE environment variable to: {api_base}", file=sys.stderr)
 
     # Validate file paths
     for fpath in editable_files + read_only_files:
