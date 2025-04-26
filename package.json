@@ -29,15 +29,15 @@
   "author": "David Guttman <david@davidguttman.com> (http://davidguttman.com/)",
   "license": "MIT",
   "dependencies": {
-    "debug": "^4.4.0"
+    "debug": "^4.4.0",
+    "cross-fetch": "^4.0.0",
+    "tar": "^7.2.0",
+    "unzipper": "^0.12.1"
   },
   "devDependencies": {
     "ava": "^6.2.0",
     "cross-env": "^7.0.3",
-    "cross-fetch": "^4.0.0",
     "echoproxia": "^1.1.0",
-    "fs-extra": "^11.2.0",
-    "tar": "^7.2.0",
-    "unzipper": "^0.12.1"
+    "fs-extra": "^11.2.0"
   }
 }
