@@ -2,3 +2,5 @@
 python/*.egg-info
 python/build
 python/.venv
+# SpecStory explanation file
+.specstory/.what-is-this.md

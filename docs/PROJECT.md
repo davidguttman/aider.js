@@ -66,7 +66,11 @@ To provide a robust Node.js wrapper for the [Aider](https://github.com/Aider-AI/
     *   Integration tests using `ava` and `echoproxia` exist (`test/aider.test.js`) to verify the core `runAider` functionality against recorded API interactions.
     *   Docker-based testing (`docker-test.sh`) ensures the installation process and tests run in an isolated environment.
 *   **Documentation:** Basic README, an example usage script (`example.js`), and unofficial Aider Python API docs (`docs/aider-api.md`) are present.
+*   **Plans:**
+    *   `docs/plans/01a-how-to-add-target-directory.md`: Plan for specifying the target directory via Python's `git_dname`.
+    *   `docs/plans/01-choice.md`: Analysis and decision document comparing `git_dname` vs `cwd` approaches (Plan 01a chosen).
 *   **Next Steps:**
+    *   Implement Plan 01a (Target Directory specification using `git_dname`).
     *   Enhance test coverage with more complex scenarios (e.g., different Aider commands, error handling).
     *   Consider adding linting and formatting standards.
     *   Keep Python dependencies (aider-chat) updated. 
