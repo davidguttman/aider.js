@@ -28,10 +28,28 @@ def main():
     model_name = config.get('modelName', 'gpt-4o-mini') # Default model
     verbose = config.get('verbose', False) # Control aider's verbosity
     api_base = config.get('apiBase') # Get apiBase from config
+    repo_path = config.get('repoPath') # <-- Added repoPath extraction
 
     if not prompt:
         print("Error: 'prompt' is required in the JSON input.", file=sys.stderr)
         sys.exit(1)
+
+    # --- repoPath Validation (Python side) ---
+    if not repo_path:
+        print("Error: 'repoPath' is required in the JSON input from Node.js.", file=sys.stderr)
+        sys.exit(1)
+    repo_path_obj = Path(repo_path)
+    if not repo_path_obj.exists():
+        print(f"Error: repoPath '{repo_path}' provided by Node.js does not exist.", file=sys.stderr)
+        sys.exit(1)
+    if not repo_path_obj.is_dir():
+        print(f"Error: repoPath '{repo_path}' provided by Node.js is not a directory.", file=sys.stderr)
+        sys.exit(1)
+    # Optional: Check for .git and issue a warning
+    git_dir = repo_path_obj / '.git'
+    if not git_dir.is_dir():
+         print(f"Warning: Target directory '{repo_path}' does not appear to be a git repository (.git directory missing).", file=sys.stderr)
+    # --- End repoPath Validation ---
 
     # --- Environment Setup ---
     # Aider/LiteLLM primarily uses environment variables.
@@ -41,12 +59,10 @@ def main():
         os.environ['OPENAI_API_BASE'] = api_base
         print(f"Setting OPENAI_API_BASE environment variable to: {api_base}", file=sys.stderr)
 
-    # Validate file paths
-    for fpath in editable_files + read_only_files:
-        if not Path(fpath).exists():
-             # Aider itself might handle this, but early validation is good
-             print(f"Warning: File not found: {fpath}", file=sys.stderr)
-             # Depending on strictness, you might want to sys.exit(1) here
+    # Validate file paths - REMOVED: Aider will handle this relative to git_dname
+    # for fpath in editable_files + read_only_files:
+    #     if not Path(fpath).exists():
+    #          print(f"Warning: File not found: {fpath}", file=sys.stderr)
 
     # --- Aider Initialization ---
     try:
@@ -62,6 +78,7 @@ def main():
             auto_commits=False,
             suggest_shell_commands=False,
             # Removed verbose=verbose based on user snippet
+            # Note: If other args like auto_commits need to be configurable, add them to Node.js options
         )
     except Exception as e:
         print(f"Error initializing aider: {e}", file=sys.stderr)

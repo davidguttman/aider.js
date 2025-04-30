@@ -47,17 +47,22 @@ node your_script.js
 **Example `runAider` Call:**
 ```javascript
 const { runAider } = require('@dguttman/aider-js');
+const path = require('path'); // For constructing paths
 
 async function main() {
   try {
-    // Required: prompt, modelName
+    // Required: prompt, modelName, repoPath
     // Optional: editableFiles, readOnlyFiles, apiBase, apiKey, verbose
     const result = await runAider({
+      // --- Required --- 
       prompt: 'Refactor the main function in app.js based on the architecture doc.',
       modelName: 'openai/gpt-4o-mini', // e.g., 'openai/gpt-4o', 'openai/gpt-4o-mini', 'anthropic/claude-3-opus-20240229'
-      
-      // --- Files ---
+      repoPath: path.resolve('../path/to/your/git/repository'), // <-- NEW: Path to the Git repository Aider should work in.
+
+      // --- Files (Relative to repoPath) ---
+      // Files Aider can modify. Paths should be relative to repoPath or absolute.
       editableFiles: ['src/app.js', 'src/utils.js'], 
+      // Files Aider can read but not modify. Paths should be relative to repoPath or absolute.
       readOnlyFiles: ['docs/architecture.md'], 
       
       // --- Optional: Custom Endpoint --- 
@@ -96,17 +101,20 @@ The `runAider` function accepts an options object. See the example and API Key e
 
 1.  **Postinstall:** Installs `uv` and Python dependencies (`aider-chat`) into `.venv/`.
 2.  **Execution (`runAider`):**
-    *   Gathers options (`prompt`, `modelName`, `files`, `apiBase`, `apiKey`, `verbose`).
-    *   **Validation:** Checks if `apiBase` is provided, ensures either `apiKey` option or `OPENAI_API_KEY` env var is present.
+    *   Gathers options (`prompt`, `modelName`, `repoPath`, `editableFiles`, `readOnlyFiles`, `apiBase`, `apiKey`, `verbose`).
+    *   **Validation:** 
+        *   Checks `repoPath` exists and is a directory.
+        *   If `apiBase` is provided, ensures either `apiKey` option or `OPENAI_API_KEY` env var is present.
     *   **Model Prefixing:** Prepends `openai/` to `modelName` if `apiBase` is provided.
     *   **Environment Setup:** Prepares environment variables for the child process:
         *   Inherits all `process.env`.
         *   If `apiBase` and `apiKey` are both provided, sets `OPENAI_API_KEY` in the child environment to the value of the `apiKey` option.
-    *   **JSON Payload:** Bundles options (excluding `apiKey` itself) into a JSON string.
-    *   **Spawn:** Executes `python/aider_entrypoint.py` using the Python in `.venv/`, passing the JSON payload as an argument and the prepared environment variables.
+    *   **JSON Payload:** Bundles options (including `repoPath`, excluding `apiKey` itself) into a JSON string.
+    *   **Spawn:** Executes `python/aider_entrypoint.py` using the Python in `.venv/`, passing the JSON payload as an argument and the prepared environment variables. Crucially, it also sets the **`cwd` (current working directory)** of the Python process to the provided `repoPath`.
 3.  **Python Script (`aider_entrypoint.py`):**
-    *   Parses the JSON configuration.
-    *   Initializes Aider `Coder` with model, files etc.
+    *   Parses the JSON configuration (it still receives `repoPath` in the JSON, though it's primarily used by Node for setting `cwd`).
+    *   Initializes Aider `Coder` with model, files, etc. (does *not* explicitly pass `git_dname`).
+    *   Aider implicitly detects the Git repository context from the process's current working directory, which was set to `repoPath` by Node.js.
     *   Aider reads API keys from the environment variables provided by Node.js (using `OPENAI_API_KEY` if `apiBase` was involved).
     *   Runs `coder.run(prompt)`.
     *   Captures stdout/stderr back to Node.js.

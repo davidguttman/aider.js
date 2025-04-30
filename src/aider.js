@@ -10,7 +10,7 @@ const PYTHON_EXECUTABLE = path.join(venvBinDir, 'python' + (process.platform ===
 
 async function runAider (options) {
   // --- Input Validation and Defaults ---
-  const { prompt, editableFiles, readOnlyFiles, modelName, apiBase, apiKey, verbose } = options
+  const { prompt, editableFiles, readOnlyFiles, modelName, apiBase, apiKey, verbose, repoPath } = options
 
   if (!prompt) {
     return Promise.reject(new Error("'prompt' is a required option"))
@@ -23,6 +23,31 @@ async function runAider (options) {
       "When 'apiBase' is provided, you must also provide either the 'apiKey' option or set the 'OPENAI_API_KEY' environment variable."
     ))
   }
+  // --- repoPath Validation ---
+  if (!repoPath) {
+    return Promise.reject(new Error("'repoPath' (target directory) is a required option."))
+  }
+  try {
+    // Use asynchronous stat for validation
+    const stats = await fs.promises.stat(repoPath);
+    if (!stats.isDirectory()) {
+      return Promise.reject(new Error(`repoPath '${repoPath}' is not a directory.`));
+    }
+    // Optional: Check for .git (consider adding a warning if desired, as per Plan 01a)
+    // const gitDir = path.join(repoPath, '.git');
+    // try {
+    //   await fs.promises.access(gitDir);
+    // } catch (err) {
+    //   debugLog(`Warning: Target directory '${repoPath}' does not appear to contain a .git directory.`);
+    // }
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      return Promise.reject(new Error(`repoPath '${repoPath}' does not exist.`));
+    }
+    // Re-throw other errors (like permission errors)
+    return Promise.reject(err);
+  }
+  // --- End repoPath Validation ---
 
   // --- Prepare Python Options ---
   const aiderModelName = apiBase ? `openai/${modelName}` : modelName
@@ -32,6 +57,7 @@ async function runAider (options) {
     editableFiles: editableFiles || [],
     readOnlyFiles: readOnlyFiles || [],
     modelName: aiderModelName,
+    repoPath,
     ...(apiBase && { apiBase }),
     verbose: verbose || false
   }
@@ -63,7 +89,8 @@ async function runAider (options) {
       [PYTHON_SCRIPT_PATH, optionsJson],
       {
         stdio: 'pipe',
-        env: pythonEnv
+        env: pythonEnv,
+        cwd: repoPath
       }
     )
 

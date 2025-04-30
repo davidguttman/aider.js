@@ -19,9 +19,11 @@ const { runAider } = require('./src/aider')
 // Options for runAider
 const options = {
   prompt: 'explain the file example.js', // REQUIRED: The user's instruction to Aider
-  modelName: 'gpt-4o-mini', // REQUIRED: e.g., 'gpt-4o', 'openai/gpt-4o-mini', 'claude-3-opus-20240229'
-  editableFiles: [], // Optional: List of files Aider can edit
-  readOnlyFiles: ['example.js'], // Optional: List of files Aider can read
+  modelName: 'openai/gpt-4o-mini', // REQUIRED: e.g., 'gpt-4o', 'openai/gpt-4o-mini', 'claude-3-opus-20240229'
+  repoPath: path.resolve(__dirname), // REQUIRED: Path to the git repository Aider should operate in. Here, we use the current project directory.
+  // For a different repository, use: path.resolve('../path/to/other/repo')
+  editableFiles: [], // Optional: List of files Aider can edit, relative to repoPath
+  readOnlyFiles: ['example.js'], // Optional: List of files Aider can read, relative to repoPath
   verbose: true, // Optional: Set to true for more detailed Aider output
 
   // --- Optional: apiBase and apiKey ---
@@ -33,6 +35,7 @@ const options = {
                             // If commented out, OPENAI_API_KEY env var MUST be set.
 
   // cwd: path.join(__dirname, 'test') // Example CWD, adjust if needed
+  // Note: cwd is NOT used by runAider; use repoPath instead.
 }
 
 async function main () {
