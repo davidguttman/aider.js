@@ -122,6 +122,16 @@ The `runAider` function accepts an options object. See the example and API Key e
 ## Development & Testing
 
 *   **Cleanup:** `npm run cleanup` (removes downloaded `uv` and the `.venv` directory)
+*   **Running Tests:** `npm test`
+*   **Test Recording:**
+    *   Tests use `echoproxia` to record and replay HTTP interactions with the LLM API (e.g., OpenRouter). This allows tests to run without live API calls after the initial recording.
+    *   To create or update recordings, run the tests with the `RECORD_MODE` environment variable set to `true` and ensure your API key (e.g., `OPENROUTER_API_KEY`) is also set in the environment:
+        ```bash
+        export RECORD_MODE=true
+        export OPENROUTER_API_KEY=sk-or-... # Replace with your actual key
+        npm test
+        ```
+    *   **Important:** When `RECORD_MODE` is `true`, the existing contents of the `test/__recordings__` directory will be **deleted** before new recordings are made for the current test run.
 
 ## Contributing
 
