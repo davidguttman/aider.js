@@ -51,30 +51,28 @@ const path = require('path'); // For constructing paths
 
 async function main() {
   try {
-    // Required: prompt, modelName, repoPath
-    // Optional: editableFiles, readOnlyFiles, apiBase, apiKey, verbose
+    // --- Options --- 
+    // See descriptions below the example
     const result = await runAider({
       // --- Required --- 
       prompt: 'Refactor the main function in app.js based on the architecture doc.',
-      modelName: 'openai/gpt-4o-mini', // e.g., 'openai/gpt-4o', 'openai/gpt-4o-mini', 'anthropic/claude-3-opus-20240229'
-      repoPath: path.resolve('../path/to/your/git/repository'), // <-- NEW: Path to the Git repository Aider should work in.
+      modelName: 'openai/gpt-4o-mini', 
+      repoPath: path.resolve('../path/to/your/git/repository'),
 
-      // --- Files (Relative to repoPath) ---
-      // Files Aider can modify. Paths should be relative to repoPath or absolute.
+      // --- Files (Relative to repoPath) --- 
       editableFiles: ['src/app.js', 'src/utils.js'], 
-      // Files Aider can read but not modify. Paths should be relative to repoPath or absolute.
       readOnlyFiles: ['docs/architecture.md'], 
       
       // --- Optional: Custom Endpoint --- 
-      // Use apiBase for proxies or specific endpoints (like OpenRouter)
-      // If used, modelName is prefixed with 'openai/' internally.
       apiBase: 'https://openrouter.ai/api/v1', 
-      // Use apiKey HERE only if you provide apiBase AND want to override the 
-      // OPENAI_API_KEY environment variable for this specific call.
-      apiKey: 'sk-or-xxxxxx', // If omitted, OPENAI_API_KEY env var MUST be set when apiBase is used.
+      apiKey: 'sk-or-xxxxxx', // Only needed if using apiBase AND overriding OPENAI_API_KEY env var.
       
-      // --- Optional: Verbosity ---
-      verbose: false 
+      // --- Optional: Behavior --- 
+      autoCommits: false, // Default: false
+      showDiffs: false, // Default: false
+      stream: false, // Default: false (Note: Streaming currently not fully supported by Node wrapper)
+      chatLanguage: 'english', // Default: 'english'
+      verbose: false // Default: false
     });
     
     // Output from the aider process
@@ -95,13 +93,28 @@ async function main() {
 main();
 ```
 
-The `runAider` function accepts an options object. See the example and API Key explanation above for details. It returns a Promise that resolves with an object containing `stdout` and `stderr` from the Aider process, or rejects with an error if the process fails.
+The `runAider` function accepts an options object with the following properties:
+
+*   **`prompt`** (string, **required**): The natural language instruction for Aider.
+*   **`modelName`** (string, **required**): The identifier for the LLM model Aider should use (e.g., `'openai/gpt-4o'`, `'anthropic/claude-3-5-sonnet-20240620'`).
+*   **`repoPath`** (string, **required**): An absolute or relative path to the root of the Git repository Aider should operate within.
+*   **`editableFiles`** (array of strings, optional): A list of file paths (relative to `repoPath` or absolute) that Aider is allowed to modify. Defaults to `[]`.
+*   **`readOnlyFiles`** (array of strings, optional): A list of file paths (relative to `repoPath` or absolute) that Aider can read for context but *cannot* modify. Defaults to `[]`.
+*   **`apiBase`** (string, optional): The base URL for a custom LLM API endpoint (e.g., for using proxies, local LLMs, or services like OpenRouter). See API Key section above for crucial details.
+*   **`apiKey`** (string, optional): The API key. This is primarily used when `apiBase` is also provided, allowing you to specify the key directly for the call, overriding the `OPENAI_API_KEY` environment variable. See API Key section above.
+*   **`autoCommits`** (boolean, optional): If `true`, Aider will automatically commit changes it makes. Defaults to `false`.
+*   **`showDiffs`** (boolean, optional): If `true`, Aider will include diffs of proposed changes in its output. Defaults to `false`.
+*   **`stream`** (boolean, optional): If `true`, instructs Aider to attempt streaming responses. **Note:** While the option is passed to Aider, the current Node.js wrapper implementation buffers the output, so you won't see true streaming behavior yet. Defaults to `false`.
+*   **`chatLanguage`** (string, optional): Specifies the language for Aider's chat interactions (e.g., `'spanish'`, `'french'`). Defaults to `'english'`.
+*   **`verbose`** (boolean, optional): If `true`, enables more detailed logging output from the underlying Aider process (sent to stderr). Defaults to `false`.
+
+The function returns a Promise that resolves with an object containing `stdout` and `stderr` from the Aider process, or rejects with an error if the process fails.
 
 ## How it Works
 
 1.  **Postinstall:** Installs `uv` and Python dependencies (`aider-chat`) into `.venv/`.
 2.  **Execution (`runAider`):**
-    *   Gathers options (`prompt`, `modelName`, `repoPath`, `editableFiles`, `readOnlyFiles`, `apiBase`, `apiKey`, `verbose`).
+    *   Gathers options (`prompt`, `modelName`, `repoPath`, `editableFiles`, `readOnlyFiles`, `apiBase`, `apiKey`, `autoCommits`, `showDiffs`, `stream`, `chatLanguage`, `verbose`).
     *   **Validation:** 
         *   Checks `repoPath` exists and is a directory.
         *   If `apiBase` is provided, ensures either `apiKey` option or `OPENAI_API_KEY` env var is present.

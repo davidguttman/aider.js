@@ -10,7 +10,20 @@ const PYTHON_EXECUTABLE = path.join(venvBinDir, 'python' + (process.platform ===
 
 async function runAider (options) {
   // --- Input Validation and Defaults ---
-  const { prompt, editableFiles, readOnlyFiles, modelName, apiBase, apiKey, verbose, repoPath, autoCommits } = options
+  const {
+    prompt,
+    editableFiles,
+    readOnlyFiles,
+    modelName,
+    apiBase,
+    apiKey,
+    repoPath,
+    autoCommits,
+    showDiffs = false,
+    stream = false,
+    chatLanguage = 'english',
+    verbose = false,
+  } = options
 
   if (!prompt) {
     return Promise.reject(new Error("'prompt' is a required option"))
@@ -59,8 +72,11 @@ async function runAider (options) {
     modelName: aiderModelName,
     repoPath,
     ...(apiBase && { apiBase }),
-    verbose: verbose || false,
-    autoCommits: autoCommits || false
+    autoCommits: autoCommits || false,
+    show_diffs: showDiffs,
+    stream: stream,
+    chat_language: chatLanguage,
+    verbose: verbose,
   }
 
   return new Promise((resolve, reject) => {

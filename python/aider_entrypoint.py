@@ -30,6 +30,11 @@ def main():
     api_base = config.get('apiBase') # Get apiBase from config
     repo_path = config.get('repoPath') # <-- Added repoPath extraction
     auto_commits = config.get('autoCommits', False) # <-- Add auto_commits extraction
+    # --- NEW OPTIONS --- extracted from config
+    show_diffs = config.get("show_diffs", False)
+    stream = config.get("stream", False)
+    chat_language = config.get("chat_language", "english")
+    # --- END NEW OPTIONS ---
 
     if not prompt:
         print("Error: 'prompt' is required in the JSON input.", file=sys.stderr)
@@ -79,7 +84,12 @@ def main():
             auto_commits=auto_commits, # <-- Use configured auto_commits
             suggest_shell_commands=False,
             # Removed verbose=verbose based on user snippet
-            # Note: If other args like auto_commits need to be configurable, add them to Node.js options
+            # --- Pass extracted options to Coder.create ---
+            show_diffs=show_diffs,
+            stream=stream,
+            chat_language=chat_language,
+            verbose=verbose,
+            # --- End passed options ---
         )
     except Exception as e:
         print(f"Error initializing aider: {e}", file=sys.stderr)
@@ -94,6 +104,14 @@ def main():
         print(f"Prompt: {prompt[:100]}{'...' if len(prompt) > 100 else ''}", file=sys.stderr)
 
         coder.run(prompt)
+
+        # Handle output based on stream flag (basic handling for now)
+        # If stream=False (default), Aider handles printing via InputOutput
+        # If stream=True, Coder.run might yield output differently.
+        # The Node.js side needs changes to actually handle streaming.
+        # For now, Python script just runs and Node buffers the output regardless.
+        if stream:
+            print("Stream=True specified, but Node.js currently buffers output.", file=sys.stderr)
 
         print("Aider execution finished.", file=sys.stderr)
         # Aider's output (diffs, messages) goes to stdout/stderr via InputOutput
