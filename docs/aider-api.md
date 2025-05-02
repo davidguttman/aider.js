@@ -64,23 +64,41 @@ except Exception as e:
 ```
 
 **Key `Coder.create` Parameters (Updated):**
-
-*   `main_model` (Model): Primary LLM.
-*   `edit_format` (str): Edit format ('diff', 'whole', etc.).
-*   `fnames` (list\[str]): List of file paths initially added as **editable**.
-*   `read_only_fnames` (list\[str]): List of file paths initially added as **read-only**.
-*   `io` (InputOutput): Handles input/output. Customizing `io.confirm_ask` might be needed if not using `yes=True`.
-*   `git_dname` (str): Path to git repository root.
-*   `auto_commits` (bool): `True` (default) to automatically commit changes, `False` to require manual `/git commit`.
-*   `dirty_commits` (bool): `False` (default) prevents commits if the repo has unstaged changes. `True` allows them.
-*   `test_cmd` (str): The shell command to execute when `/test` is run.
-*   `lint_cmd` (str): The shell command to execute when `/lint` is run.
-*   `cache_prompts` (bool): Enable prompt caching (default `False`).
-*   `cache_keepalive_pings` (int): Number of times to ping the provider to keep the cache warm (default `0`).
-*   `dry_run` (bool): If `True`, simulate actions without modifying files or committing (default `False`).
-*   `verbose` (bool): Enable verbose logging.
-*   `stream` (bool): `True` (default) to stream LLM responses, `False` to wait for the full response.
-*   `yes` (bool): `False` (default). If `True`, automatically answer "yes" to confirmation prompts (like running commands, creating files). **Use with extreme caution.**
+```python
+        coder = Coder.create(
+            main_model=main_model,
+            edit_format=args.edit_format,
+            io=io,
+            repo=repo,
+            fnames=fnames,
+            read_only_fnames=read_only_fnames,
+            show_diffs=args.show_diffs,
+            auto_commits=args.auto_commits,
+            dirty_commits=args.dirty_commits,
+            dry_run=args.dry_run,
+            map_tokens=map_tokens,
+            verbose=args.verbose,
+            stream=args.stream,
+            use_git=args.git,
+            restore_chat_history=args.restore_chat_history,
+            auto_lint=args.auto_lint,
+            auto_test=args.auto_test,
+            lint_cmds=lint_cmds,
+            test_cmd=args.test_cmd,
+            commands=commands,
+            summarizer=summarizer,
+            analytics=analytics,
+            map_refresh=args.map_refresh,
+            cache_prompts=args.cache_prompts,
+            map_mul_no_files=args.map_multiplier_no_files,
+            num_cache_warming_pings=args.cache_keepalive_pings,
+            suggest_shell_commands=args.suggest_shell_commands,
+            chat_language=args.chat_language,
+            detect_urls=args.detect_urls,
+            auto_copy_context=args.copy_paste,
+            auto_accept_architect=args.auto_accept_architect,
+        )
+        ```
 
 **Interaction Method:**
 

@@ -33,7 +33,7 @@ To provide a robust Node.js wrapper for the [Aider](https://github.com/Aider-AI/
     *   `scripts/cleanup.js` provides a way to remove the generated `bin/` and `.venv/` directories.
 *   **Node.js to Python Bridge:**
     *   The main entry point is `src/aider.js`, exporting the `runAider(options)` function.
-    *   `runAider` validates input options (`prompt`, `modelName`, file paths, `apiBase`, `apiKey`, `verbose`).
+    *   `runAider` validates input options (`prompt`, `modelName`, file paths, `apiBase`, `apiKey`, `verbose`, `repoPath`, `autoCommits`).
     *   It prepares a JSON configuration object based on the options.
     *   It uses `child_process.spawn` to execute the Python script `python/aider_entrypoint.py` using the Python interpreter located within the `.venv/` directory.
     *   The JSON configuration is passed as a command-line argument to the Python script.

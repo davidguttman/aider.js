@@ -29,6 +29,7 @@ def main():
     verbose = config.get('verbose', False) # Control aider's verbosity
     api_base = config.get('apiBase') # Get apiBase from config
     repo_path = config.get('repoPath') # <-- Added repoPath extraction
+    auto_commits = config.get('autoCommits', False) # <-- Add auto_commits extraction
 
     if not prompt:
         print("Error: 'prompt' is required in the JSON input.", file=sys.stderr)
@@ -75,7 +76,7 @@ def main():
             io=InputOutput(yes=True), # Instantiate InputOutput inline
             fnames=editable_files,    # Corresponds to context_editable
             read_only_fnames=read_only_files, # Corresponds to context_read_only
-            auto_commits=False,
+            auto_commits=auto_commits, # <-- Use configured auto_commits
             suggest_shell_commands=False,
             # Removed verbose=verbose based on user snippet
             # Note: If other args like auto_commits need to be configurable, add them to Node.js options

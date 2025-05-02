@@ -167,6 +167,60 @@ test('Aider should edit a file within the specified repoPath', async t => {
   // No finally needed here, cleanup is handled by test.afterEach.always
 })
 
+test('Aider should edit a file and auto-commit when autoCommits is true', async t => {
+  // We can likely reuse the same recording as the non-commit test,
+  // as the LLM interaction should be identical.
+  t.context.proxy.setSequence('file-edit-autocommit-openrouter')
+
+  const expectedContent = 'goodbye world\n'
+  const testFileNameRelative = t.context.testFileName
+
+  try {
+    const result = await runAider({
+      prompt: `Change 'hello' to 'goodbye' in the file ${testFileNameRelative}`,
+      modelName: modelNameToUse,
+      repoPath: t.context.tempRepoDir,
+      editableFiles: [testFileNameRelative],
+      apiBase: t.context.proxy.url,
+      apiKey: apiKeyToUse, // Needed for potential recording
+      verbose: true,
+      autoCommits: true // <-- Enable auto-commits for this test
+    })
+
+    t.assert(result, 'runAider should return a result object')
+    t.assert(typeof result.stdout === 'string', 'Result should have stdout string')
+    debugLog('Aider Output (stdout) [autoCommit=true]:', result.stdout)
+    debugLog('Aider Output (stderr) [autoCommit=true]:', result.stderr)
+
+    // Verify file content
+    const finalContentPath = path.join(t.context.tempRepoDir, testFileNameRelative)
+    const finalContent = await fs.readFile(finalContentPath, 'utf-8')
+    debugLog(`Final content of ${finalContentPath}: \"${finalContent}\" [autoCommit=true]`)
+    t.is(finalContent, expectedContent, `File content should be '${expectedContent}' after edit with auto-commit`)
+
+    // Verify git status is CLEAN (no changes) because of auto-commit
+    const gitStatus = execSync('git status --porcelain', { cwd: t.context.tempRepoDir }).toString().trim();
+    debugLog(`Git status in ${t.context.tempRepoDir}: \"${gitStatus}\" [autoCommit=true]`);
+    t.is(gitStatus, '', 'Git status should be clean after auto-commit');
+
+    // Optional: Verify a commit was actually made
+    const gitLog = execSync('git log -n 1 --pretty=format:%s', { cwd: t.context.tempRepoDir }).toString().trim();
+    debugLog(`Last git commit subject: ${gitLog}`);
+    // Check if the actual commit message starts with the expected prefix
+    t.assert(gitLog.startsWith('fix: replace \'hello\' with \'goodbye\''), 'Last commit message should reflect the aider operation');
+
+  } catch (error) {
+     debugError('Error running aider [autoCommit=true]:', error);
+     if (error.stderr) {
+       debugError('Aider stderr on error [autoCommit=true]:', error.stderr);
+     }
+     if (error.stdout) {
+       debugError('Aider stdout on error [autoCommit=true]:', error.stdout);
+     }
+     t.fail(`runAider threw an unexpected error [autoCommit=true]: ${error.message}`)
+  }
+})
+
 // Add more test cases here for different scenarios
 // - Using files (editable/read-only)
 // - Different prompts
